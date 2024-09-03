@@ -1,0 +1,254 @@
+---
+title: "Sampling Report Northern Norway 2024"
+author: "Moritz Mainka"
+date: "2024-08-10"
+format: html
+#  pdf:
+#    documentclass: report
+editor: visual
+bibliography: [Bibliography/bibliography.bib]
+#csl: ../Bibliography/advances-in-climate-change-research.csl
+---
+
+# Brief summary of sampling campaign
+
+The sampling campaign took place from 16 July to 8 August 2024 in the Finnmark region in Northern Norway. From 20 to 25 July, a prospection campaign was conducted to find 5 sites with different geological parent material. Soil pits were established and greenhouse gas fluxes measured (CO~2~, CH~4~, N~2~O). From 27 July to 2 August, soil plot and biomass samples were taken and bioplots within the soil plots established.
+
+Five plots were established based on the units indicated in the geological map sheets (resolution 1:50,000), the vegetation cover (tree-free tundra), and landscape position (stable positions, not water-affected, representative). The sites were named after the geological map sheet and code in the respective sheet. An example: NNBF1 = NN \[Northern Norway\] + BF \[map sheet Bekkarfjord\] + 1 \[code in Bekkarfjord map sheet\].
+
+# Sampling sites
+
+## Locations and geological parent materials
+
+The following map (@fig-site-map) shows the location of the established sites and the respective IDs.
+
+```{r}
+#| label: fig-site-map
+#| message: false
+#| echo: false
+#| warning: false
+#| fig-cap: "Map of sampling locations in the Finnmark region, Norway"
+#| fig-width: 8
+#| fig-height: 8
+
+library(sf)
+library(ggplot2)
+library(rnaturalearth)
+library(cowplot)
+set.seed(124)
+# Load Norway shapefile from rnaturalearth
+norway <- ne_states(country = c("norway", "sweden", "finland"), returnclass = "sf") %>%
+  st_crop(xmin = 0, xmax = 34, ymin = -54, ymax = 71.5)
+
+    
+# Approximate bounding box for Finnmark
+finnmark <- st_crop(norway, xmin = 25, xmax = 32, ymin = 69.5, ymax = 71.5)
+
+# Create sample points within Finnmark
+shp <- read.csv("C:/Users/mmainka/OneDrive - ETH Zurich/Research/Data_ArcticGreening/AG_site_coordinates/20240801_AG_SiteCoordinates.csv")
+# filter by name (starts with NN and ends with PIT)
+shp <- shp[grepl("^NN.*PIT$", shp$name),]
+# replace pit with nothing  
+shp$name <- gsub("PIT", "", shp$name)
+shp$name <- gsub(" ", "", shp$name)
+# convert
+shp <- st_as_sf(shp, coords = c("X", "Y"), crs = 4326)
+
+# Create the main map of Finnmark
+finnmark_map <- ggplot() +
+  geom_sf(data = finnmark, fill = "lightblue", color = "lightgrey", alpha = 0.5) +
+  geom_sf(data = shp, color = "red", size = 3) +
+  labs(title = "", x = "", y = "") +
+  # add name of shp as label to points
+  geom_sf_text(data = shp, aes(label = name), color = "black", #fill = "white", 
+                size = 3, nudge_x = .5, nudge_y = 0.03,
+               #position = position_jitter(width = 0.5, height = 0.3),
+               fontface = "bold.italic") +
+  theme_minimal()
+
+# Create the inset map of mainland Norway
+norway_map <- ggplot() +
+  geom_sf(data = norway, fill = "lightgrey", color = "darkgrey") +
+  geom_rect(aes(xmin = 25, xmax = 32, ymin = 69.5, ymax = 71.5), 
+            fill = NA, color = "red", size = 0.5) +  # Highlighting Finnmark
+  theme_void() + theme(text = element_text(size = 8)) + 
+  ggtitle("")
+
+
+# Use cowplot to create an inset
+combined_map <- ggdraw() +
+  draw_plot(finnmark_map) +
+  draw_plot(norway_map, hjust = -.8, vjust = .62, width = .3, height = 2.1)
+
+print(combined_map)
+
+```
+
+The table (@tbl-geol_1) provides an overview of the geological parent material at the established sites.
+
+```{r}
+#| label: tbl-geol_1
+#| tbl-cap: "Geological parent material at the established sites"
+#| tbl-cap-location: top
+#| echo: false
+#| message: false
+#| tbl-caption: "Geological parent material at the established sites"
+
+siteInfo <- read.csv("files/geol_site_info.csv")
+
+formatted_kable <- knitr::kable(siteInfo,
+                                col.names = c("Site ID", "Map sheet", "Sampling region", "Geology", "Soil type", "Vegetation", "Observations"),
+                                align = "lllllll") 
+formatted_kable
+
+```
+
+### Vegetation (low-arctic tundra)
+
+The vegetation found across the sampling regions was quite homogeneous and dominated by dwarf shrubs (usually around 70-80 % cover) and underlying mosses/bryophytes. The only exception was the NNKOF13 site, which showed a higher share of graminoids. For details check the following table: @tbl-veg-composition.
+```{r}
+#| label: tbl-veg-composition
+#| tbl-cap: "Plant functional type cover estimates in percent for each soil plot at the established sites"
+#| tbl-cap-location: top
+#| echo: false
+#| message: false
+
+library(readxl)
+library(tidyverse)
+
+tab <- read_excel("files/FT_Cover.xlsx")
+
+# convert to wide format
+tab <- as.data.frame(t(tab %>% select(-date) %>% 
+  pivot_wider(names_from = Plot, values_from = cover) %>%
+    # define column names
+    column_to_rownames(var = "type")))
+
+# convert NA to 0
+tab[is.na(tab)] <- 0
+
+# add total cover (sum of previous rows per column)
+tab$total_cover_perc <- round(rowSums(tab),1)
+
+formatted_kable <- knitr::kable(tab,
+                                align = "lllllll") 
+formatted_kable
+
+
+```
+
+
+The figure below illustrates the typical vegetation composition at the sites.
+
+![Typically found vegetation. Here NNMEH2.](files/NNMEH2_vegetation.jpeg) ![Typically found vegetation. Here NNKOF13.](files/NNKOF13_vegetation.jpeg) ![Typically found vegetation. Here NNBAF4.](files/vegetation1.jpeg)
+
+## Details for each site
+
+### NNBF1
+
+The NNBF1 site is characterized by carbonate-free rocks (mostly sandstone and to lesser extent schist/phyllite) that led to the formation of a Podzol (see Figure below). The vegetation is dominated by dwarf shrubs.
+
+![NNBF1 - soil profile](files/NNBF1_PIT.jpg)
+
+The following samples were taken:
+
+-   GHG samples
+-   Pit samples (genetic horizons)
+-   Soil plot samples (to a depth of 15cm)
+    -   Of/Oh
+    -   Ae
+    -   Bs
+-   Biomass samples (above- and belowground)
+    -   Dwarf shrubs (6 replicates)
+    -   Betula nana (6 replicates)
+-   Vegetation cover + species composition
+-   Microbio subsamples
+
+### NNBF5
+
+The NNBF5 site is characterized by carbonate-free sandstone. There might be some disturbance (see Figure below). The vegetation is dominated by dwarf shrubs.
+
+![NNBF5 - soil profile](files/NNBF5_PIT.jpeg)
+
+The following samples were taken:
+
+-   GHG samples
+-   Pit samples (genetic horizons)
+-   Soil plot samples (to a depth of 15cm)
+    -   Of/Oh
+    -   Oh
+    -   Bw
+-   Biomass samples (above- and belowground)
+    -   Dwarf shrubs (6 replicates)
+    -   Betula nana (6 replicates)
+-   Vegetation cover + species composition
+-   Microbio subsamples
+
+### NNMEH2
+
+The NNMEH2 site was characterized by an initially developed soil ("Regosol") (profile picture is missing). The organic layer was followed by an Ah + Cw horizon. The parent material was fine metamorphic rock (phyllite/schist).
+
+The following samples were taken:
+
+-   GHG samples
+-   Pit samples (genetic horizons)
+-   Soil plot samples (to a depth of 15cm)
+    -   Of/Oh
+    -   Oh
+    -   Cw \| Oh
+-   Biomass samples (above- and belowground)
+    -   Dwarf shrubs (6 replicates)
+    -   Betula nana (6 replicates)
+-   Vegetation cover + species composition
+-   Microbio subsamples
+
+### NNKOF13
+
+This site differed from the others as the vegetation was not purely dominated by dwarf shrubs but showed larger shares of graminoids. This might be due to higher moisture levels due to preferential flowpaths.
+
+![NNKOF13 - soil profile](files/NNKOF13_PIT.jpeg)
+
+The following samples were taken:
+
+-   GHG samples
+-   Pit samples (genetic horizons)
+-   Soil plot samples (to a depth of 15cm)
+    -   Of
+    -   Of-Oh
+    -   Cw \| Oh
+-   Biomass samples (above- and belowground)
+    -   Dwarf shrubs (6 replicates)
+    -   Graminoids (6 replicates)
+-   Vegetation cover + species composition
+-   Microbio subsamples
+
+### NNBAF4
+
+The NNBAF4 site had an initially developed Cambisol that developed on a mixed parent material consisting of carbonate-containing sandstone, carbonate-free red mudstone, and a yellowish sandstone. The vegetation was dwarf shrub-dominated. The organic layer was particularly well humified (very thick Oh layer).
+
+![NNBAF4 - soil profile](files/NNBAF4_PIT.jpeg)
+
+The following samples were taken:
+
+-   GHG samples
+-   Pit samples (genetic horizons)
+-   Soil plot samples (to a depth of 15cm)
+    -   Of-Oh
+    -   Oh
+    -   Cw \| Oh
+-   Biomass samples (above- and belowground)
+    -   Dwarf shrubs (6 replicates)
+    -   Betula nana (6 replicates)
+-   Vegetation cover + species composition
+-   Microbio subsamples
+
+# Further documents and reading
+
+The geological maps can be accessed here: https://geo.ngu.no/kart/kartkatalog_mobil/ The map sheets that are most relevant to the sampling campaign are:
+
+-   Bekkarfjord (BF)
+-   Kongsfjord (KOF)
+-   Mehamn (MEH)
+-   Batsfjord (BAF)
+
+More information on the Kalak-Nappe Complex can be found in this paper: @kirkland2005early

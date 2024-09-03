@@ -1,0 +1,36 @@
+{
+    "sources": [
+        {
+            "author": [
+                {
+                    "family": "Kirkland",
+                    "given": "CL"
+                },
+                {
+                    "family": "Daly",
+                    "given": "JS"
+                },
+                {
+                    "family": "Whitehouse",
+                    "given": "MJ"
+                }
+            ],
+            "container-title": "Journal of the Geological Society",
+            "id": "kirkland2005early",
+            "issue": "6",
+            "issued": {
+                "date-parts": [
+                    [
+                        2005
+                    ]
+                ]
+            },
+            "page": "985-1003",
+            "publisher": "The Geological Society of London",
+            "title": "Early silurian magmatism and the scandian evolution of the kalak nappe complex, finnmark, arctic norway",
+            "type": "article-journal",
+            "volume": "162"
+        }
+    ],
+    "project_biblios": []
+}
