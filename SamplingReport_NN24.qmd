@@ -2,9 +2,7 @@
 title: "Sampling Report Northern Norway 2024"
 author: "Moritz Mainka"
 date: "2024-08-10"
-format: html
-#  pdf:
-#    documentclass: report
+
 editor: visual
 bibliography: [Bibliography/bibliography.bib]
 #csl: ../Bibliography/advances-in-climate-change-research.csl
@@ -106,6 +104,7 @@ formatted_kable
 ### Vegetation (low-arctic tundra)
 
 The vegetation found across the sampling regions was quite homogeneous and dominated by dwarf shrubs (usually around 70-80 % cover) and underlying mosses/bryophytes. The only exception was the NNKOF13 site, which showed a higher share of graminoids. For details check the following table: @tbl-veg-composition.
+
 ```{r}
 #| label: tbl-veg-composition
 #| tbl-cap: "Plant functional type cover estimates in percent for each soil plot at the established sites"
@@ -136,7 +135,6 @@ formatted_kable
 
 
 ```
-
 
 The figure below illustrates the typical vegetation composition at the sites.
 
