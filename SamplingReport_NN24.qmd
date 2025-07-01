@@ -34,23 +34,34 @@ library(ggplot2)
 library(rnaturalearth)
 library(cowplot)
 set.seed(124)
+
+
+target_crs <- 3995 # EPSG:3995 for ETRS89 / NTM zone 4
+
 # Load Norway shapefile from rnaturalearth
-norway <- ne_states(country = c("norway", "sweden", "finland"), returnclass = "sf") %>%
-  st_crop(xmin = 0, xmax = 34, ymin = -54, ymax = 71.5)
+norway <- ne_states(country = c("norway", "sweden", "finland"), returnclass = "sf")
+norway <- st_crop(norway, xmin = 4.3, xmax = 32, ymin = 55.5, ymax = 71.3) # Crop to the area of interest
 
-    
-# Approximate bounding box for Finnmark
-finnmark <- st_crop(norway, xmin = 25, xmax = 32, ymin = 69.5, ymax = 71.5)
+# ---- Reproject 'norway' to EPSG:3995 first ----
+norway_projected <- st_transform(norway, crs = target_crs)
 
-# Create sample points within Finnmark
-shp <- read.csv("C:/Users/mmainka/OneDrive - ETH Zurich/Research/Data_ArcticGreening/AG_site_coordinates/20240801_AG_SiteCoordinates.csv")
-# filter by name (starts with NN and ends with PIT)
-shp <- shp[grepl("^NN.*PIT$", shp$name),]
-# replace pit with nothing  
-shp$name <- gsub("PIT", "", shp$name)
-shp$name <- gsub(" ", "", shp$name)
-# convert
-shp <- st_as_sf(shp, coords = c("X", "Y"), crs = 4326)
+# Create a bounding box for Finnmark in WGS84 (EPSG:4326)
+finnmark_bbox_wgs84 <- st_sfc(st_polygon(list(matrix(
+  c(25, 69.5,
+    32, 69.5,
+    32, 71.5,
+    25, 71.5,
+    25, 69.5), # Close the polygon
+  ncol = 2, byrow = TRUE
+))), crs = 4326)
+
+# Transform the Finnmark bounding box polygon to the target CRS (EPSG:3995)
+finnmark_crop_area_projected <- st_transform(finnmark_bbox_wgs84, crs = target_crs)
+finnmark <- st_crop(norway_projected, finnmark_crop_area_projected)
+
+shp <- read.csv("files/site_coords.csv")
+shp <- st_as_sf(shp, coords = c("X", "Y"), crs = 4326) # Initial CRS is WGS84
+shp <- st_transform(shp, crs = target_crs) # Transform to EPSG:3995 (Arctic Stereographic)
 
 # Create the main map of Finnmark
 finnmark_map <- ggplot() +
@@ -58,25 +69,24 @@ finnmark_map <- ggplot() +
   geom_sf(data = shp, color = "red", size = 3) +
   labs(title = "", x = "", y = "") +
   # add name of shp as label to points
-  geom_sf_text(data = shp, aes(label = name), color = "black", #fill = "white", 
-                size = 3, nudge_x = .5, nudge_y = 0.03,
-               #position = position_jitter(width = 0.5, height = 0.3),
+  geom_sf_text(data = shp, aes(label = name), color = "black",
+               size = 3, nudge_x = 5000, nudge_y = 5000, # Nudge values will now be in meters
                fontface = "bold.italic") +
-  theme_minimal()
+  theme_minimal() +
+  # Ensure the plot uses the target CRS for proper rendering and labels
+  coord_sf(crs = target_crs) # Explicitly set coord_sf to the target_crs
 
 # Create the inset map of mainland Norway
 norway_map <- ggplot() +
-  geom_sf(data = norway, fill = "lightgrey", color = "darkgrey") +
-  geom_rect(aes(xmin = 25, xmax = 32, ymin = 69.5, ymax = 71.5), 
-            fill = NA, color = "red", size = 0.5) +  # Highlighting Finnmark
-  theme_void() + theme(text = element_text(size = 8)) + 
-  ggtitle("")
-
+  geom_sf(data = norway_projected, fill = "lightgrey", color = "darkgrey") + 
+  geom_sf(data = finnmark_bbox_wgs84, fill = NA, color = "red", size = 0.5) +
+  # suppress automatic extension of axes
+  coord_sf(expand = FALSE) + theme_void()
 
 # Use cowplot to create an inset
 combined_map <- ggdraw() +
   draw_plot(finnmark_map) +
-  draw_plot(norway_map, hjust = -.8, vjust = .62, width = .3, height = 2.1)
+  draw_plot(norway_map, x = 0.35, y = 0.22, width = 0.3, height = 0.3) # Example values
 
 print(combined_map)
 
